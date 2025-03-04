@@ -1,22 +1,32 @@
 #include <Arduino.h>
+#include <Adafruit_BMP280.h>
 #include <Wire.h> //Importation de la bibliothèque Wire pour pouvoir communiquer avec le capteur.
 #define Addr 0x70 //Définition de la variable Addr avec la valeur héxadécimale 0x70.
 
+// Partie BMP280
+#define BMP_I2C_Addr 0x76
+Adafruit_BMP280 bmp;
+
+//Partie GSM
 String data; 
 char sortie[120];
 
 int reveil = 6;
 int verifreveil = 7;
 int reponse = 0;
-
-float puissance = pow(2, 16);
-
 void decode();  // Déclaration de la fonction
 
 
-void setup() {
+// Partie SHT-C3
+float puissance = pow(2, 16);
 
-  pinMode(reveil, OUTPUT);
+
+
+
+void setup() {
+// Partie GSM
+
+ /* pinMode(reveil, OUTPUT);
   pinMode(verifreveil, INPUT);
   delay(2000);
   if(digitalRead(verifreveil)== HIGH){
@@ -25,8 +35,8 @@ void setup() {
     digitalWrite(reveil, HIGH);
     delay(2000);
     digitalWrite(reveil, LOW);
-  }
-  delay(2000);
+  }*/
+  delay(5000);
 
   
   Serial.begin(115200);//Initialisation de la communication Arduino <==> PC
@@ -48,7 +58,7 @@ void setup() {
   Serial1.println("AT+CPIN=\"0000\"");
   decode();
 
-
+//Partie SHT-C3
 
   Wire.begin(); //Initialisation de la librairie Wire et de l'I2C.
 
@@ -58,13 +68,30 @@ void setup() {
    Wire.endTransmission();
 
  
+// Partie BMP280
 
+  bmp.begin(BMP_I2C_Addr);
+
+   bmp.setSampling(Adafruit_BMP280::MODE_FORCED,     /* Operating Mode. */
+    Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+    Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
+    Adafruit_BMP280::FILTER_X16,      /* Filtering. */
+    Adafruit_BMP280::STANDBY_MS_500); 
   
 
 
 }
 
 void loop() {
+
+  float pression = bmp.readPressure();
+  Serial.print("Pression : ");
+  Serial.print(pression);
+  Serial.println(" Pa");
+  pression = pression / 100;
+  Serial.print(pression);
+  Serial.println(" mb");
+
 
   Wire.beginTransmission(Addr); //Envoi de la commande de reveil avec le code 0x3517 sur 2 octets.
   Wire.write(0x35);
@@ -79,8 +106,8 @@ void loop() {
 
   Wire.requestFrom(Addr, 6); //Envoi d'une requête de données sur 6 octets.
   // Deux octets sont pour la température, deux octets pour l'humidité et deux octets pour les checksum.
-  Serial.print("Octets en attente de lecture: "); //Affichage dans le moniteur série du nombre d'octets disponible à intégrer dans des variables.
-  Serial.println(Wire.available());
+  //Serial.print("Octets en attente de lecture: "); //Affichage dans le moniteur série du nombre d'octets disponible à intégrer dans des variables.
+  //Serial.println(Wire.available());
   int T_MSB = Wire.read(); //Lecture du premier octet de température.
   int T_LSB = Wire.read(); //Lecture du deuxième octet de température.
   int checksum1 = Wire.read(); // Attribution du checksum à une variable checksum1.
