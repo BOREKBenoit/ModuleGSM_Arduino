@@ -14,4 +14,6 @@ float bmpReadPressure();
 void C3SendConfig(uint8_t Addr);
 void C3Read(uint8_t Addr, float &Temp, float &Hum);
 
+
+
 #endif  // Fin du bloc de garde d'inclusion

@@ -1,7 +1,28 @@
+/* 
+  Capture de la température/humidité/vitesse du vent et initialisation du module GSM.
+  
+  Programme Basique sur Arduino MKR WAN 1310.
+  IDE Visual Studio Code 1.98.0
+
+  Constituants :
+    - Arduino MKR WAN 1310
+    - SHT-C3
+    - BMP280
+    - Module GSM Waveshare
+    - Anémomètre PEETBROS
+
+    Version 1 : 11/03/2025
+    Benoit Borek
+  */
+
+
+
 #include <Arduino.h>
 #include <Adafruit_BMP280.h>
 #include <Wire.h> //Importation de la bibliothèque Wire pour pouvoir communiquer avec le capteur.
 #include "fonctionsBAG.h"
+
+
 
 
 #define Addr 0x70 //Définition de la variable Addr avec la valeur héxadécimale 0x70.
@@ -9,6 +30,28 @@
 // Partie BMP280
 #define BMP_I2C_Addr 0x76
 Adafruit_BMP280 bmp;
+
+#define REED_PIN 7  
+
+volatile int compteur_impulsions = 0;
+volatile unsigned long last_interrupt_time = 0;
+const double FACTEUR_KMH = 0.04;  // Facteur ajusté
+const int DEBOUNCE_TIME = 10; 
+
+
+
+void impulsion_detectee() {
+
+  unsigned long interrupt_time = millis();
+  if (interrupt_time - last_interrupt_time > DEBOUNCE_TIME) {
+      compteur_impulsions++;
+      last_interrupt_time = interrupt_time;
+  }
+
+}
+
+
+
 
 
 
@@ -38,6 +81,10 @@ void setup() {
 
 C3Init(Addr);
 bmpInit(BMP_I2C_Addr);
+
+
+pinMode(REED_PIN, INPUT);  // Pas de INPUT_PULLUP sur MKR WAN !
+attachInterrupt(digitalPinToInterrupt(REED_PIN), impulsion_detectee, FALLING);
 }
  
 
@@ -68,7 +115,19 @@ void loop() {
   Serial.print(pression);
   Serial.println("mb");
   Serial.println();
+
   
+
+ 
+
+  double vitesse_vent_kmh = compteur_impulsions * FACTEUR_KMH * 12;  // 12 pour passer à l'heure
+  Serial.print("Vitesse du vent : ");
+  Serial.print(vitesse_vent_kmh);
+  Serial.println(" km/h");
+
+  compteur_impulsions = 0;
+  delay(5000);
+ 
 
 
 
