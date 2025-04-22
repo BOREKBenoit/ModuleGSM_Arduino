@@ -35,7 +35,7 @@ Adafruit_BMP280 bmp;
 
 volatile int compteur_impulsions = 0;
 volatile unsigned long last_interrupt_time = 0;
-const double FACTEUR_KMH = 0.04;  // Facteur ajusté
+const double FACTEUR_KMH = 0.25;  // Facteur ajusté
 const int DEBOUNCE_TIME = 10; 
 
 
@@ -83,8 +83,8 @@ C3Init(Addr);
 bmpInit(BMP_I2C_Addr);
 
 
-pinMode(REED_PIN, INPUT);  // Pas de INPUT_PULLUP sur MKR WAN !
-attachInterrupt(digitalPinToInterrupt(REED_PIN), impulsion_detectee, FALLING);
+pinMode(7, INPUT);  // Pas de INPUT_PULLUP sur MKR WAN !
+attachInterrupt(digitalPinToInterrupt(7), impulsion_detectee, FALLING);
 }
  
 
@@ -97,39 +97,17 @@ void loop() {
   C3SendConfig(Addr);
 
   float temperature, humidite;
-
   C3Read(Addr, temperature, humidite);
 
-
-
-  Serial.println(); //Affichage de la température et de l'humidité dans le moniteur série.
-  Serial.print("Température convertie : ");
-  Serial.print(temperature);
-  Serial.println("°C");
-  Serial.println();
-  Serial.print("Humidité convertie : ");
-  Serial.print(humidite);
-  Serial.println("%");
-  Serial.println();
-  Serial.print("Pression convertie : ");
-  Serial.print(pression);
-  Serial.println("mb");
-  Serial.println();
-
-  
-
- 
-
   double vitesse_vent_kmh = compteur_impulsions * FACTEUR_KMH * 12;  // 12 pour passer à l'heure
-  Serial.print("Vitesse du vent : ");
-  Serial.print(vitesse_vent_kmh);
-  Serial.println(" km/h");
+
+  printAll(temperature, humidite, pression, vitesse_vent_kmh);
 
   compteur_impulsions = 0;
-  delay(5000);
+  delay(1000);
  
 
-
+// Calcul niveau de grêle et envoi par SMS.
 
 
 

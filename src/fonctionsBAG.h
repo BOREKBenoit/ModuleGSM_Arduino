@@ -13,6 +13,7 @@ void bmpInit(uint8_t BMP_I2C_Addr);
 float bmpReadPressure();
 void C3SendConfig(uint8_t Addr);
 void C3Read(uint8_t Addr, float &Temp, float &Hum);
+void printAll(float temperature, float humidite, float pression, double vitesse_vent_kmh);
 
 
 

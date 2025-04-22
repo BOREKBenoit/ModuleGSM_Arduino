@@ -124,7 +124,26 @@ void decode(){
   }
 
 
+// ======================== Affichage de toute les variables pour le debug ========================
 
+void printAll(float temperature, float humidite, float pression, double vitesse_vent_kmh){
+  Serial.println(); //Affichage de la température et de l'humidité dans le moniteur série.
+  Serial.print("Température convertie : ");
+  Serial.print(temperature);
+  Serial.println("°C");
+  Serial.println();
+  Serial.print("Humidité convertie : ");
+  Serial.print(humidite);
+  Serial.println("%");
+  Serial.println();
+  Serial.print("Pression convertie : ");
+  Serial.print(pression);
+  Serial.println("mb");
+  Serial.println();
+  Serial.print("Vitesse du vent : ");
+  Serial.print(vitesse_vent_kmh);
+  Serial.println(" km/h");
+}
 
 
 
