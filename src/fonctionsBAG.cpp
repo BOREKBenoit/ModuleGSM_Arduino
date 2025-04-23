@@ -34,7 +34,7 @@ void C3SendConfig(uint8_t Addr){
 
 }
 
-void C3Read(uint8_t Addr, float &temperature, float &humidite){
+void C3Read(uint8_t Addr, int &T_MSB, int &T_LSB, int &H_MSB, int &H_LSB){
   float puissance = pow(2, 16);
 
 
@@ -50,15 +50,6 @@ void C3Read(uint8_t Addr, float &temperature, float &humidite){
   int H_LSB = Wire.read(); //Lecture du deuxième octet d'humidité.
   int checksum2 = Wire.read(); // Attribution du checksum à une variable checksum2.
 
-  temperature = (T_MSB*256) + T_LSB; 
-  temperature = -45 + 175 * (temperature/puissance); 
-
-
-  //Conversion de l'humidité en valeur décimale.
-  humidite = (H_MSB*256) + H_LSB;
-  humidite = 100 * (humidite/puissance);
-
- // Hum = 100 + Hum;
 
  Wire.beginTransmission(Addr); //Envoi sur 2 octets de la commande de mise en veille du capteur.
  Wire.write(0xB0); //Commande de mise en veille 0xB098.
@@ -89,16 +80,16 @@ void bmpInit(uint8_t BMP_I2C_Addr){
 
 }
 
-float bmpReadPressure(){
-  float pression;
-  return pression = bmp.readPressure() / 100.0;
+int bmpReadPressure(){
+  int pression;
+  return pression = bmp.readPressure();
 }
 
 // ======================== Partie GSM ========================
 
 
 void decode(){
-    char sortie[120];
+    char sortie[240];
     String data; 
 
 
@@ -123,26 +114,101 @@ void decode(){
   
   }
 
+// ======================== Anémomètre ========================
+
+
+  void pulseISR() {
+    const double DIAMETRE_PO = 2.6;
+const double DIAMETRE_CM = DIAMETRE_PO * 2.54;
+const double RAYON_CM = DIAMETRE_CM / 2.0;
+const double CIRCONFERENCE_CM = 2 * PI * RAYON_CM;
+
+const double DEBOUNCE_MIN_DELTA = 0.05; // secondes
+
+volatile bool firstPulseCaptured = false;
+volatile unsigned long t0 = 0, tx = 0;
+    static unsigned long lastPulse = 0;
+    unsigned long now = micros(); // temps en microsecondes
+    double sinceLastPulse = (now - lastPulse) / 1e6;
+  
+    if (sinceLastPulse < DEBOUNCE_MIN_DELTA) return;
+    lastPulse = now;
+  
+    if (!firstPulseCaptured) {
+      t0 = now;
+      firstPulseCaptured = true;
+    } else {
+      tx = now;
+      double deltaT = (tx - t0) / 1e6;
+  
+      if (deltaT > DEBOUNCE_MIN_DELTA) {
+        double vitesseLin_cm_s = CIRCONFERENCE_CM / deltaT;
+        double vitesse_m_s = vitesseLin_cm_s / 100.0;
+        double vitesse_km_h = vitesse_m_s * 3.6;
+  
+        Serial.print("Δt = ");
+        Serial.print(deltaT, 4);
+        Serial.print(" s | Vitesse du vent : ");
+        Serial.print(vitesse_m_s, 2);
+        Serial.print(" m/s (");
+        Serial.print(vitesse_km_h, 2);
+        Serial.println(" km/h)");
+  
+       
+      }
+  
+      firstPulseCaptured = false;
+    }
+  }
+
+  // ======================== Calcul du timestamp ========================
+
+  unsigned long toUnixTimestamp(int year, int month, int day, int hour, int minute, int second) {
+    const int daysInMonth[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+  
+    unsigned long days = 0;
+  
+    for (int y = 1970; y < year; y++) {
+      days += isLeap(y) ? 366 : 365;
+    }
+  
+    for (int m = 1; m < month; m++) {
+      days += daysInMonth[m - 1];
+      if (m == 2 && isLeap(year)) days += 1;
+    }
+  
+    days += day - 1;
+  
+    unsigned long totalSeconds = days * 86400UL;
+    totalSeconds += hour * 3600UL;
+    totalSeconds += minute * 60UL;
+    totalSeconds += second;
+  
+    return totalSeconds - 3600;
+  }
+
+  bool isLeap(int year) {
+    return ((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0);
+  }
+
 
 // ======================== Affichage de toute les variables pour le debug ========================
 
-void printAll(float temperature, float humidite, float pression, double vitesse_vent_kmh){
-  Serial.println(); //Affichage de la température et de l'humidité dans le moniteur série.
-  Serial.print("Température convertie : ");
-  Serial.print(temperature);
-  Serial.println("°C");
-  Serial.println();
-  Serial.print("Humidité convertie : ");
-  Serial.print(humidite);
-  Serial.println("%");
-  Serial.println();
-  Serial.print("Pression convertie : ");
-  Serial.print(pression);
-  Serial.println("mb");
-  Serial.println();
-  Serial.print("Vitesse du vent : ");
-  Serial.print(vitesse_vent_kmh);
-  Serial.println(" km/h");
+void printAll(int T_MSB, int T_LSB, int H_MSB, int H_LSB, float pression){
+  Serial.println("Affichage des valeurs de temperature, humidite et de pression");
+  delay(1000);
+  Serial.print("Temperature MSB : ");
+  Serial.println(T_MSB);
+  Serial.print("Temperature LSB : ");
+  Serial.println(T_LSB);
+  Serial.print("Humidite MSB : ");
+  Serial.println(H_MSB);
+  Serial.print("Humidite LSB : ");
+  Serial.println(H_LSB);
+  Serial.print("Pression : ");
+  Serial.println(pression);
+  delay(5000);
+
 }
 
 

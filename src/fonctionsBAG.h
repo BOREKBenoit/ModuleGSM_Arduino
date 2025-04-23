@@ -10,10 +10,13 @@ extern Adafruit_BMP280 bmp;
 void decode();
 void C3Init(uint8_t Addr);
 void bmpInit(uint8_t BMP_I2C_Addr);
-float bmpReadPressure();
+int bmpReadPressure();
 void C3SendConfig(uint8_t Addr);
-void C3Read(uint8_t Addr, float &Temp, float &Hum);
-void printAll(float temperature, float humidite, float pression, double vitesse_vent_kmh);
+void C3Read(uint8_t Addr, int &TempMSB, int &TempLSB, int &HumMSB, int &HumLSB);
+void printAll(float temperature, float humidite, float pression);
+void pulseISR();
+unsigned long toUnixTimestamp(int year, int month, int day, int hour, int minute, int second);
+bool isLeap(int year);
 
 
 
