@@ -117,49 +117,7 @@ void decode(){
 // ======================== Anémomètre ========================
 
 
-  void pulseISR() {
-    const double DIAMETRE_PO = 2.6;
-const double DIAMETRE_CM = DIAMETRE_PO * 2.54;
-const double RAYON_CM = DIAMETRE_CM / 2.0;
-const double CIRCONFERENCE_CM = 2 * PI * RAYON_CM;
-
-const double DEBOUNCE_MIN_DELTA = 0.05; // secondes
-
-volatile bool firstPulseCaptured = false;
-volatile unsigned long t0 = 0, tx = 0;
-    static unsigned long lastPulse = 0;
-    unsigned long now = micros(); // temps en microsecondes
-    double sinceLastPulse = (now - lastPulse) / 1e6;
-  
-    if (sinceLastPulse < DEBOUNCE_MIN_DELTA) return;
-    lastPulse = now;
-  
-    if (!firstPulseCaptured) {
-      t0 = now;
-      firstPulseCaptured = true;
-    } else {
-      tx = now;
-      double deltaT = (tx - t0) / 1e6;
-  
-      if (deltaT > DEBOUNCE_MIN_DELTA) {
-        double vitesseLin_cm_s = CIRCONFERENCE_CM / deltaT;
-        double vitesse_m_s = vitesseLin_cm_s / 100.0;
-        double vitesse_km_h = vitesse_m_s * 3.6;
-  
-        Serial.print("Δt = ");
-        Serial.print(deltaT, 4);
-        Serial.print(" s | Vitesse du vent : ");
-        Serial.print(vitesse_m_s, 2);
-        Serial.print(" m/s (");
-        Serial.print(vitesse_km_h, 2);
-        Serial.println(" km/h)");
-  
-       
-      }
-  
-      firstPulseCaptured = false;
-    }
-  }
+ 
 
   // ======================== Calcul du timestamp ========================
 

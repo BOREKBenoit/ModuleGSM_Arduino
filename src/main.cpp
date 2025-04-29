@@ -25,6 +25,41 @@
 #include <MKRWAN.h>
 LoRaModem modem;
 
+// === Paramètres de l'anémomètre ===
+const float DIAMETRE_PO = 2.6;
+const float DIAMETRE_CM = DIAMETRE_PO * 2.54;
+const float RAYON_CM = DIAMETRE_CM / 2.0;
+const float CIRCONFERENCE_CM = 2 * PI * RAYON_CM;
+
+// === Débouncing ===
+const unsigned long DEBOUNCE_MIN_DELTA_MS = 50; // 0.05 seconde
+
+// === Pin de l'anémomètre ===
+const byte PIN_ANEMO = 7;  // utilise une pin avec interruption (ex: pin 7)
+
+// === Variables de mesure ===
+volatile unsigned long t0 = 0;
+volatile unsigned long tx = 0;
+volatile bool firstPulseCaptured = false;
+volatile bool newMeasurement = false;
+
+void pulseISR() {
+  unsigned long now = millis();
+
+  static unsigned long lastPulse = 0;
+  if (now - lastPulse < DEBOUNCE_MIN_DELTA_MS) return;
+  lastPulse = now;
+
+  if (!firstPulseCaptured) {
+    t0 = now;
+    firstPulseCaptured = true;
+  } else {
+    tx = now;
+    newMeasurement = true;
+    firstPulseCaptured = false;
+  }
+}
+
 
 
 bool isLeap(int year);
@@ -37,7 +72,6 @@ unsigned long toUnixTimestamp(int year, int month, int day, int hour, int minute
 #define BMP_I2C_Addr 0x76
 Adafruit_BMP280 bmp;
 
-#define PIN_ANEMO 7
 
 String appEui = "0000000000000000";
 String appKey = "E1510F7D6408ACA459E58EF86975727A";
@@ -108,11 +142,11 @@ void setup() {
 C3Init(Addr);
 bmpInit(BMP_I2C_Addr);
 
-
 pinMode(PIN_ANEMO, INPUT_PULLUP);
 attachInterrupt(digitalPinToInterrupt(PIN_ANEMO), pulseISR, FALLING);
 
-Serial.println("Démarrage du capteur de vent Peet Bros...");
+Serial.println("Démarrage de l'anémomètre...");
+
 
 
 
@@ -122,7 +156,30 @@ Serial.println("Démarrage du capteur de vent Peet Bros...");
 
 
 
-void loop() {
+void loop() { 
+  if (newMeasurement) {
+    noInterrupts(); // on empêche les interruptions pendant le calcul
+    unsigned long deltaT_ms = tx - t0;
+    newMeasurement = false;
+    interrupts();
+
+    if (deltaT_ms > 0) {
+      float deltaT_s = deltaT_ms / 1000.0;
+      float vitesse_cm_s = CIRCONFERENCE_CM / deltaT_s;
+      float vitesse_m_s = vitesse_cm_s / 100.0;
+      float vitesse_km_h = vitesse_m_s * 3.6;
+
+      Serial.print("Δt = ");
+      Serial.print(deltaT_s);
+      Serial.print(" s | Vitesse du vent : ");
+      Serial.print(vitesse_m_s);
+      Serial.print(" m/s (");
+      Serial.print(vitesse_km_h);
+      Serial.println(" km/h)");
+    }
+  }
+  
+
   Serial1.println("AT+CCLK?");
   delay(1000);
 
@@ -197,7 +254,7 @@ void loop() {
   Serial.print("Pression : ");
   Serial.println(pression);
   
-  pulseISR();
+
 
 
 
@@ -305,7 +362,7 @@ Serial.println(SHumidite_LSB);
 
 Serial.println(STimestamp+STemperature_MSB+STemperature_LSB+SHumidite_MSB+SHumidite_LSB);
 
-int error;
+/*int error;
 modem.beginPacket();
 modem.print(STimestamp+STemperature_MSB+STemperature_LSB+SHumidite_MSB+SHumidite_LSB);
 error = modem.endPacket(true);
@@ -314,7 +371,8 @@ if(error < 0){
 } else {
   Serial.println("La trame a été transmise");
 }
-delay(50000);
+delay(360000);*/
+delay(2000);
 
 
 

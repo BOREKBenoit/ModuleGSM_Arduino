@@ -14,7 +14,7 @@ int bmpReadPressure();
 void C3SendConfig(uint8_t Addr);
 void C3Read(uint8_t Addr, int &TempMSB, int &TempLSB, int &HumMSB, int &HumLSB);
 void printAll(int T_MSB, int T_LSB, int H_MSB, int H_LSB, int pression);
-void pulseISR();
+
 unsigned long toUnixTimestamp(int year, int month, int day, int hour, int minute, int second);
 bool isLeap(int year);
 
