@@ -43,11 +43,11 @@ void C3Read(uint8_t Addr, int &T_MSB, int &T_LSB, int &H_MSB, int &H_LSB){
   // Deux octets sont pour la température, deux octets pour l'humidité et deux octets pour les checksum.
   //Serial.print("Octets en attente de lecture: "); //Affichage dans le moniteur série du nombre d'octets disponible à intégrer dans des variables.
   //Serial.println(Wire.available());
-  int T_MSB = Wire.read(); //Lecture du premier octet de température.
-  int T_LSB = Wire.read(); //Lecture du deuxième octet de température.
+   T_MSB = Wire.read(); //Lecture du premier octet de température.
+   T_LSB = Wire.read(); //Lecture du deuxième octet de température.
   int checksum1 = Wire.read(); // Attribution du checksum à une variable checksum1.
-  int H_MSB = Wire.read(); //Lecture du premier octet d'humidité.
-  int H_LSB = Wire.read(); //Lecture du deuxième octet d'humidité.
+   H_MSB = Wire.read(); //Lecture du premier octet d'humidité.
+   H_LSB = Wire.read(); //Lecture du deuxième octet d'humidité.
   int checksum2 = Wire.read(); // Attribution du checksum à une variable checksum2.
 
 
@@ -192,24 +192,6 @@ volatile unsigned long t0 = 0, tx = 0;
   }
 
 
-// ======================== Affichage de toute les variables pour le debug ========================
-
-void printAll(int T_MSB, int T_LSB, int H_MSB, int H_LSB, float pression){
-  Serial.println("Affichage des valeurs de temperature, humidite et de pression");
-  delay(1000);
-  Serial.print("Temperature MSB : ");
-  Serial.println(T_MSB);
-  Serial.print("Temperature LSB : ");
-  Serial.println(T_LSB);
-  Serial.print("Humidite MSB : ");
-  Serial.println(H_MSB);
-  Serial.print("Humidite LSB : ");
-  Serial.println(H_LSB);
-  Serial.print("Pression : ");
-  Serial.println(pression);
-  delay(5000);
-
-}
 
 
 

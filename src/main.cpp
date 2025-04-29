@@ -185,10 +185,21 @@ void loop() {
 
   int temperatureMSB, temperatureLSB, humiditeMSB, humiditeLSB;
   C3Read(Addr, temperatureMSB,temperatureLSB, humiditeMSB, humiditeLSB);
+
+  Serial.print("Temperature MSB : ");
+  Serial.println(temperatureMSB);
+  Serial.print("Temperature LSB : ");
+  Serial.println(temperatureLSB);
+  Serial.print("Humidite MSB : ");
+  Serial.println(humiditeMSB);
+  Serial.print("Humidite LSB : ");
+  Serial.println(humiditeLSB);
+  Serial.print("Pression : ");
+  Serial.println(pression);
   
   pulseISR();
 
-  
+
 
 
   delay(1000);
@@ -201,16 +212,102 @@ void loop() {
 
 
 Serial.println("Création de la trame pour le serveur TTN.....");
+//========== Convertion quand c'est négatif ==========
 
-String valeurFinale = String(timestamp, BIN);
-Serial.println(valeurFinale);
-int valFinale = valeurFinale.toInt();
+String STemperature_MSB = String(temperatureMSB,BIN);
+String STemperature_LSB = String(temperatureLSB, BIN);
+String SHumidite_MSB = String(humiditeMSB, BIN);
+String SHumidite_LSB = String(humiditeLSB, BIN);
+
+if(temperatureMSB < 0){
+  STemperature_MSB = "";
+  byte condensed = (byte)temperatureMSB;
+for (int i = 7; i >= 0; i--) {
+  STemperature_MSB += bitRead(condensed, i);  // lit bit par bit de gauche à droite
+}
+} 
+
+if(temperatureLSB < 0){
+  STemperature_LSB = "";
+  byte condensed = (byte)temperatureLSB;
+for (int i = 7; i >= 0; i--) {
+  STemperature_LSB += bitRead(condensed, i);  // lit bit par bit de gauche à droite
+}
+}
+
+if(humiditeLSB < 0){
+  SHumidite_LSB = "";
+  byte condensed = (byte)humiditeLSB;
+for (int i = 7; i >= 0; i--) {
+  SHumidite_LSB += bitRead(condensed, i);  // lit bit par bit de gauche à droite
+}
+}
 
 
-Serial.println(valFinale, BIN);
+if(humiditeMSB < 0){
+  SHumidite_MSB = "";
+  byte condensed = (byte)humiditeMSB;
+for (int i = 7; i >= 0; i--) {
+  SHumidite_MSB += bitRead(condensed, i);  // lit bit par bit de gauche à droite
+}
+}
+
+
+
+
+String STimestamp = String(timestamp, BIN);
+Serial.println(STimestamp);
+Serial.println(STemperature_MSB);
+Serial.println(STemperature_LSB);
+Serial.println(SHumidite_MSB);
+Serial.println(SHumidite_LSB);
+
+
+
+int len = STemperature_MSB.length();
+int nextMultiple = ((len + 7) / 8) * 8;  // arrondi au multiple de 8 supérieur
+while (STemperature_MSB.length() < nextMultiple) {
+  STemperature_MSB = "0" + STemperature_MSB;
+}
+
+
+
+
+ len = STemperature_LSB.length();
+ nextMultiple = ((len + 7) / 8) * 8;  // arrondi au multiple de 8 supérieur
+while (STemperature_LSB.length() < nextMultiple) {
+  STemperature_LSB = "0" + STemperature_LSB;
+}
+
+
+
+ len = SHumidite_LSB.length();
+ nextMultiple = ((len + 7) / 8) * 8;  // arrondi au multiple de 8 supérieur
+while (SHumidite_LSB.length() < nextMultiple) {
+  SHumidite_LSB = "0" + SHumidite_LSB;
+}
+
+
+
+ len = SHumidite_MSB.length();
+ nextMultiple = ((len + 7) / 8) * 8;  // arrondi au multiple de 8 supérieur
+while (SHumidite_MSB.length() < nextMultiple) {
+  SHumidite_MSB = "0" + SHumidite_MSB;
+}
+
+
+Serial.println("=======");
+
+Serial.println(STemperature_MSB);
+Serial.println(STemperature_LSB);
+Serial.println(SHumidite_MSB);
+Serial.println(SHumidite_LSB);
+
+Serial.println(STimestamp+STemperature_MSB+STemperature_LSB+SHumidite_MSB+SHumidite_LSB);
+
 int error;
 modem.beginPacket();
-modem.print(valFinale);
+modem.print(STimestamp+STemperature_MSB+STemperature_LSB+SHumidite_MSB+SHumidite_LSB);
 error = modem.endPacket(true);
 if(error < 0){
   Serial.println("La trame n'a pas été transmise");
