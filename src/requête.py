@@ -1,7 +1,7 @@
 import requests
 
 headers = {
-    "Authorization": "Bearer NNSXS.GVQV5C2K7VVMXQMI6VYQ2QJ4CTNURVCZK2FR5II.LKXVDNOT6IWSS2K7UZ3AVGUBRVNUAOYC4V5CARXHB7Q3QTHZP6XA"
+    "Authorization": ""
 }
 
 url = "https://eu1.cloud.thethings.network/api/v3/as/applications/station-vigne/devices/eui-a8610a32344b7004/packages/storage/uplink_message"
