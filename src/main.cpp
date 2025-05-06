@@ -156,7 +156,26 @@ Serial.println("Démarrage de l'anémomètre...");
 
 
 
-void loop() { 
+void loop() { /* ===== Debug Module GSM ====== */
+  Serial1.println("AT");
+  decode();
+  delay(1000);
+  Serial1.println("AT");
+  decode();
+  delay(1000);
+  Serial1.println("AT");
+  decode();
+  delay(1000);
+  Serial1.println("AT");
+  decode();
+  delay(1000);
+  Serial1.println("AT");
+  decode();
+  delay(1000);
+  Serial1.println("AT");
+  decode();
+  delay(1000);
+
   if (newMeasurement) {
     noInterrupts(); // on empêche les interruptions pendant le calcul
     unsigned long deltaT_ms = tx - t0;
@@ -362,17 +381,16 @@ Serial.println(SHumidite_LSB);
 
 Serial.println(STimestamp+STemperature_MSB+STemperature_LSB+SHumidite_MSB+SHumidite_LSB);
 
-/*int error;
+int error;
 modem.beginPacket();
-modem.print(STimestamp+STemperature_MSB+STemperature_LSB+SHumidite_MSB+SHumidite_LSB);
+modem.print(STimestamp);
 error = modem.endPacket(true);
 if(error < 0){
   Serial.println("La trame n'a pas été transmise");
 } else {
   Serial.println("La trame a été transmise");
 }
-delay(360000);*/
-delay(2000);
+delay(10000);
 
 
 
