@@ -60,7 +60,7 @@ void pulseISR() {
   }
 }
 
-
+float vitesse_km_h = 0.0; // Vitesse du vent en km/h
 
 bool isLeap(int year);
 unsigned long toUnixTimestamp(int year, int month, int day, int hour, int minute, int second);
@@ -159,22 +159,7 @@ Serial.println("Démarrage de l'anémomètre...");
 void loop() { /* ===== Debug Module GSM ====== */
   Serial1.println("AT");
   decode();
-  delay(1000);
-  Serial1.println("AT");
-  decode();
-  delay(1000);
-  Serial1.println("AT");
-  decode();
-  delay(1000);
-  Serial1.println("AT");
-  decode();
-  delay(1000);
-  Serial1.println("AT");
-  decode();
-  delay(1000);
-  Serial1.println("AT");
-  decode();
-  delay(1000);
+
 
   if (newMeasurement) {
     noInterrupts(); // on empêche les interruptions pendant le calcul
@@ -186,8 +171,9 @@ void loop() { /* ===== Debug Module GSM ====== */
       float deltaT_s = deltaT_ms / 1000.0;
       float vitesse_cm_s = CIRCONFERENCE_CM / deltaT_s;
       float vitesse_m_s = vitesse_cm_s / 100.0;
-      float vitesse_km_h = vitesse_m_s * 3.6;
-
+      vitesse_km_h = vitesse_m_s * 3.6;
+    
+      // Affichage classique
       Serial.print("Δt = ");
       Serial.print(deltaT_s);
       Serial.print(" s | Vitesse du vent : ");
@@ -195,9 +181,32 @@ void loop() { /* ===== Debug Module GSM ====== */
       Serial.print(" m/s (");
       Serial.print(vitesse_km_h);
       Serial.println(" km/h)");
+    
+
+
+    
+
     }
+    
   }
   
+  float vitesseLimitee = min(vitesse_km_h, 63.75);
+    
+  // Séparer la partie entière et la partie décimale
+  uint8_t partieEntiere = (uint8_t)vitesseLimitee;           // 0–63
+  float partieDecimale = vitesseLimitee - partieEntiere;
+
+  // Convertir la partie décimale en 2 bits (0.00, 0.25, 0.50, 0.75)
+  uint8_t decimal2bits = round(partieDecimale * 4.0);         // 0 à 3
+
+  // Fusionner les deux dans un octet
+  uint8_t vitesse8bit = (partieEntiere << 2) | (decimal2bits & 0b11);
+
+  // Affichage binaire sur 8 bits
+  String Svitesse = String(vitesse8bit, BIN);
+  while (Svitesse.length() < 8) {
+    Svitesse = "0" + Svitesse;
+  }
 
   Serial1.println("AT+CCLK?");
   delay(1000);
@@ -256,29 +265,79 @@ void loop() { /* ===== Debug Module GSM ====== */
 
   
 
-  int pression = bmpReadPressure();
+    int pression = bmpReadPressure(); // Exemple: 101325 (en Pa)
+
+    // Convertir en hPa
+    float pression_hPa = pression / 100.0;
+    
+    // Plage typique : 300 à 1100 hPa
+    pression_hPa = constrain(pression_hPa, 300.0, 1100.0);
+    
+    // Encodage sur 8 bits
+    uint8_t pression8bit = round((pression_hPa - 300.0) * 255.0 / 800.0);
+    
+    // Conversion en binaire (8 bits)
+    String Spression = String(pression8bit, BIN);
+    
+    // Complétion à 8 bits
+    while (Spression.length() < 8) {
+      Spression = "0" + Spression;
+    }
+    
+
+
+    
   C3SendConfig(Addr);
 
   int temperatureMSB, temperatureLSB, humiditeMSB, humiditeLSB;
-  C3Read(Addr, temperatureMSB,temperatureLSB, humiditeMSB, humiditeLSB);
-
-  Serial.print("Temperature MSB : ");
-  Serial.println(temperatureMSB);
-  Serial.print("Temperature LSB : ");
-  Serial.println(temperatureLSB);
-  Serial.print("Humidite MSB : ");
-  Serial.println(humiditeMSB);
-  Serial.print("Humidite LSB : ");
-  Serial.println(humiditeLSB);
-  Serial.print("Pression : ");
-  Serial.println(pression);
+  C3Read(Addr, temperatureMSB, temperatureLSB, humiditeMSB, humiditeLSB);
   
+  // -------- Conversion brute 16 bits --------
+  uint16_t rawTemperature = (temperatureMSB << 8) | temperatureLSB;
+  uint16_t rawHumidity = (humiditeMSB << 8) | humiditeLSB;
+  
+  // -------- Formules SHT-C3 datasheet --------
+  // Température en °C
+  float temperatureC = -45 + 175 * (rawTemperature / 65535.0);
+  
+  // Humidité en %RH
+  float humidityRH = 100 * (rawHumidity / 65535.0);
+  
+  // -------- Limiter les plages utiles --------
+  temperatureC = constrain(temperatureC, -40.0, 125.0);  // plage typique
+  humidityRH   = constrain(humidityRH, 0.0, 100.0);      // plage normale
+  
+  // -------- Encodage sur 8 bits --------
+  // Température : on mappe -40 à 125 °C → 0 à 255
+  uint8_t temp8bit = round((temperatureC + 40.0) * 255.0 / 165.0);
+  
+  // Humidité : on mappe 0 à 100 % → 0 à 255
+  uint8_t hum8bit = round(humidityRH * 255.0 / 100.0);
+  
+  // -------- Affichage des résultats --------
+  Serial.print("Température °C : ");
+  Serial.println(temperatureC);
+  Serial.print("Température encodée (8 bits) : ");
+  Serial.println(temp8bit, BIN);
+  
+  Serial.print("Humidité %RH : ");
+  Serial.println(humidityRH);
+  Serial.print("Humidité encodée (8 bits) : ");
+  Serial.println(hum8bit, BIN);
 
 
+  
+  Serial.print("Pression encodée sur 8 bits : ");
+  Serial.println(Spression);
+  Serial.print("Vitesse encodée sur 8 bits : ");
+  Serial.println(Svitesse);
+
+  delay(1500);
 
 
+  C3SendConfig(Addr);
 
-  delay(1000);
+
 
 
  
@@ -290,10 +349,11 @@ void loop() { /* ===== Debug Module GSM ====== */
 Serial.println("Création de la trame pour le serveur TTN.....");
 //========== Convertion quand c'est négatif ==========
 
-String STemperature_MSB = String(temperatureMSB,BIN);
-String STemperature_LSB = String(temperatureLSB, BIN);
-String SHumidite_MSB = String(humiditeMSB, BIN);
-String SHumidite_LSB = String(humiditeLSB, BIN);
+String STemperature_MSB = String(hum8bit,BIN);
+
+String SHumidite_MSB = String(hum8bit, BIN);
+
+
 
 if(temperatureMSB < 0){
   STemperature_MSB = "";
@@ -302,22 +362,6 @@ for (int i = 7; i >= 0; i--) {
   STemperature_MSB += bitRead(condensed, i);  // lit bit par bit de gauche à droite
 }
 } 
-
-if(temperatureLSB < 0){
-  STemperature_LSB = "";
-  byte condensed = (byte)temperatureLSB;
-for (int i = 7; i >= 0; i--) {
-  STemperature_LSB += bitRead(condensed, i);  // lit bit par bit de gauche à droite
-}
-}
-
-if(humiditeLSB < 0){
-  SHumidite_LSB = "";
-  byte condensed = (byte)humiditeLSB;
-for (int i = 7; i >= 0; i--) {
-  SHumidite_LSB += bitRead(condensed, i);  // lit bit par bit de gauche à droite
-}
-}
 
 
 if(humiditeMSB < 0){
@@ -332,11 +376,7 @@ for (int i = 7; i >= 0; i--) {
 
 
 String STimestamp = String(timestamp, BIN);
-Serial.println(STimestamp);
-Serial.println(STemperature_MSB);
-Serial.println(STemperature_LSB);
-Serial.println(SHumidite_MSB);
-Serial.println(SHumidite_LSB);
+
 
 
 
@@ -348,23 +388,6 @@ while (STemperature_MSB.length() < nextMultiple) {
 
 
 
-
- len = STemperature_LSB.length();
- nextMultiple = ((len + 7) / 8) * 8;  // arrondi au multiple de 8 supérieur
-while (STemperature_LSB.length() < nextMultiple) {
-  STemperature_LSB = "0" + STemperature_LSB;
-}
-
-
-
- len = SHumidite_LSB.length();
- nextMultiple = ((len + 7) / 8) * 8;  // arrondi au multiple de 8 supérieur
-while (SHumidite_LSB.length() < nextMultiple) {
-  SHumidite_LSB = "0" + SHumidite_LSB;
-}
-
-
-
  len = SHumidite_MSB.length();
  nextMultiple = ((len + 7) / 8) * 8;  // arrondi au multiple de 8 supérieur
 while (SHumidite_MSB.length() < nextMultiple) {
@@ -372,14 +395,21 @@ while (SHumidite_MSB.length() < nextMultiple) {
 }
 
 
+
+
 Serial.println("=======");
-
+Serial.println("Temp : ");
 Serial.println(STemperature_MSB);
-Serial.println(STemperature_LSB);
-Serial.println(SHumidite_MSB);
-Serial.println(SHumidite_LSB);
 
-Serial.println(STimestamp+STemperature_MSB+STemperature_LSB+SHumidite_MSB+SHumidite_LSB);
+Serial.println("Hum : ");
+Serial.println(SHumidite_MSB);
+
+Serial.println("Pression : ");
+Serial.println(Spression);
+Serial.println("Vitesse : ");
+Serial.println(Svitesse);
+
+Serial.println(STimestamp+STemperature_MSB+SHumidite_MSB+Spression+Svitesse);
 
 int error;
 modem.beginPacket();
@@ -390,8 +420,9 @@ if(error < 0){
 } else {
   Serial.println("La trame a été transmise");
 }
-delay(10000);
 
+
+delay(120000);
 
 
 }
