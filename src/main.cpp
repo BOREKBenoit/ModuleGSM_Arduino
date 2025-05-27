@@ -25,6 +25,10 @@
 #include <MKRWAN.h>
 LoRaModem modem;
 
+
+float latitude;
+float longitude;
+
 // === Paramètres de l'anémomètre ===
 const float DIAMETRE_PO = 2.6;
 const float DIAMETRE_CM = DIAMETRE_PO * 2.54;
@@ -102,16 +106,19 @@ void setup() {
   Serial.print("Le numéro EUI du module est : ");
   Serial.println(modem.deviceEUI());
 
-  int connected = modem.joinOTAA(appEui, appKey);
+ /* int connected = modem.joinOTAA(appEui, appKey);
   if(!connected){
     Serial.println("Quelque chose n'a pas fonctionner avec la connection LoRa.");
     while(1);
   }
-  modem.minPollInterval(60);
+  modem.minPollInterval(60);*/
 
   Serial.println("Partie 1 : test de la réponse du module");
   Serial1.println("AT");
   decode();
+
+
+
 
 /*
   Serial.println("Partie 2 : Débloquage de la SIM avec comme code pin \"0000\" ");
@@ -156,10 +163,7 @@ Serial.println("Démarrage de l'anémomètre...");
 
 
 
-void loop() { /* ===== Debug Module GSM ====== */
-  Serial1.println("AT");
-  decode();
-
+void loop() { 
 
   if (newMeasurement) {
     noInterrupts(); // on empêche les interruptions pendant le calcul
@@ -229,12 +233,12 @@ void loop() { /* ===== Debug Module GSM ====== */
 
     Serial.println(sortie); // Affiche "AT OK"
     Serial.println("====");
-    int jour;
-    int mois;
-    int annee;
-    int heure;
-    int minute;
-    int seconde;
+    int jour = 0;
+    int mois =0;
+    int annee=0;
+    int heure=0;
+    int minute=0;
+    int seconde=0;
 
     if (isdigit(sortie[19]) && isdigit(sortie[20])) {
       jour = (sortie[19] - '0') * 10 + (sortie[20] - '0'); // Convertir '4''2' → 42
@@ -337,10 +341,78 @@ void loop() { /* ===== Debug Module GSM ====== */
 
   C3SendConfig(Addr);
 
+  delay(60000);
+// =========GPS==========
+Serial.println("Activation du GPS");
+Serial1.println("AT+CGNSPWR=1");
+delay(1000); 
+decode();
+Serial.println("Demande d'informations GPS");
 
 
+ // Envoi de la commande GPS
+Serial1.println("AT+CGNSINF");
+delay(500); // temps de réponse du module
 
- 
+// Lecture de la réponse
+String ligneGPS = "";
+unsigned long timeout = millis();
+while (millis() - timeout < 1000) {
+  if (Serial1.available()) {
+    ligneGPS = Serial1.readStringUntil('\n');
+    if (ligneGPS.startsWith("+CGNSINF:")) {
+      break;
+    }
+  }
+}
+
+if (ligneGPS.startsWith("+CGNSINF:")) {
+  // Exemple : +CGNSINF: 1,1,20240527173201.000,48.8566,2.3522,35.0,...
+  int indexDeuxPoints = ligneGPS.indexOf(':');
+  String data = ligneGPS.substring(indexDeuxPoints + 1);
+  data.trim(); // Supprime les espaces
+
+  // Découpage par virgule
+  int idx1 = data.indexOf(',');                  // GNSS run status
+  int idx2 = data.indexOf(',', idx1 + 1);        // Fix status
+  int idx3 = data.indexOf(',', idx2 + 1);        // UTC time
+  int idx4 = data.indexOf(',', idx3 + 1);        // Latitude
+  int idx5 = data.indexOf(',', idx4 + 1);        // Longitude
+
+  String latStr = data.substring(idx3 + 1, idx4);
+  String lonStr = data.substring(idx4 + 1, idx5);
+
+  latitude = latStr.toFloat();
+  longitude = lonStr.toFloat();
+
+  Serial.print("Latitude : ");
+  Serial.println(latitude, 6);
+  Serial.print("Longitude : ");
+  Serial.println(longitude, 6);
+} else {
+  Serial.println(" Pas de réponse +CGNSINF trouvée");
+}
+float minLat = -90.0;
+float maxLat = 90.0;
+
+// Étape 1 : Mapper la latitude dans l'intervalle 0-255
+uint8_t encodedLat = (uint8_t)((latitude - minLat) * 255.0 / (maxLat - minLat));
+
+// Afficher en binaire
+Serial.print("Latitude encodée sur 1 octet : ");
+Serial.println(encodedLat, BIN);
+
+float minLong = -90.0;
+float maxLong = 90.0;
+
+// Étape 1 : Mapper la latitude dans l'intervalle 0-255
+uint8_t encodedLong = (uint8_t)((longitude - minLong) * 255.0 / (maxLong - minLong));
+
+// Afficher en binaire
+Serial.print("Longitude encodée sur 1 octet : ");
+Serial.println(encodedLong, BIN);
+
+
 
 // Création de la trame d'envoi
 
@@ -371,6 +443,10 @@ for (int i = 7; i >= 0; i--) {
   SHumidite_MSB += bitRead(condensed, i);  // lit bit par bit de gauche à droite
 }
 }
+
+
+
+
 
 
 
@@ -411,7 +487,7 @@ Serial.println(Svitesse);
 
 Serial.println(STimestamp+STemperature_MSB+SHumidite_MSB+Spression+Svitesse);
 
-int error;
+/*int error;
 modem.beginPacket();
 modem.print(STimestamp);
 error = modem.endPacket(true);
@@ -419,10 +495,10 @@ if(error < 0){
   Serial.println("La trame n'a pas été transmise");
 } else {
   Serial.println("La trame a été transmise");
-}
+}*/
 
 
-delay(120000);
+
 
 
 }

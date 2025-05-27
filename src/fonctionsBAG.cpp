@@ -19,10 +19,16 @@ void C3Init(uint8_t Addr){
 
 
 void C3SendConfig(uint8_t Addr){
+
   Wire.beginTransmission(Addr); //Envoi de la commande de reveil avec le code 0x3517 sur 2 octets.
   Wire.write(0x35);
   Wire.write(0x17);
   Wire.endTransmission();
+  delay(1000);
+      Wire.beginTransmission(Addr); //Initialisation de la communication Arduino <----> SHTC3 avec l'adresse 0x70.
+  Wire.write(0x80); //Envoi sur 2 octets la commande de réinitialisation système du capteur.
+  Wire.write(0x5D);
+   Wire.endTransmission();
   delay(1000);
   Wire.beginTransmission(Addr); //Envoi de la commande de conversion en "Normal mode" avec la température lu en premier.
   Wire.write(0x7C); //Envoi de 0x7CA2 sur 2 octets.
@@ -113,11 +119,6 @@ void decode(){
       
   
   }
-
-// ======================== Anémomètre ========================
-
-
- 
 
   // ======================== Calcul du timestamp ========================
 
