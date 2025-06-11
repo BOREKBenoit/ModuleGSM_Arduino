@@ -17,7 +17,9 @@ void printAll(int T_MSB, int T_LSB, int H_MSB, int H_LSB, int pression);
 
 unsigned long toUnixTimestamp(int year, int month, int day, int hour, int minute, int second);
 bool isLeap(int year);
-
+void envoieNivTrois();
+void envoieNivDeux();
+void envoieNivUn();
 
 
 #endif  // Fin du bloc de garde d'inclusion

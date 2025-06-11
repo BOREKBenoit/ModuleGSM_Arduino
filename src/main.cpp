@@ -86,12 +86,7 @@ void setup() {
   Serial.begin(115200);//Initialisation de la communication Arduino <==> PC
   Serial1.begin(115200);//Initialisation de la communication Arduino <==> Module GSM
 
-  while(!Serial) { //Attend que Serial soit initialisé.
-    ;
-  }
-  while(!Serial1){ //Attend que Serial1 soit initialisé.
-    ;
-  }
+
 
   if (!modem.begin(EU868)) {
     Serial.println("Erreur lors du lancement du module");
@@ -106,12 +101,12 @@ void setup() {
   Serial.print("Le numéro EUI du module est : ");
   Serial.println(modem.deviceEUI());
 
- /* int connected = modem.joinOTAA(appEui, appKey);
+  int connected = modem.joinOTAA(appEui, appKey);
   if(!connected){
     Serial.println("Quelque chose n'a pas fonctionner avec la connection LoRa.");
     while(1);
   }
-  modem.minPollInterval(60);*/
+  modem.minPollInterval(60);
 
   Serial.println("Partie 1 : test de la réponse du module");
   Serial1.println("AT");
@@ -120,14 +115,13 @@ void setup() {
 
 
 
-/*
-  Serial.println("Partie 2 : Débloquage de la SIM avec comme code pin \"0000\" ");
-  Serial1.println("AT+CPIN=\"0000\"");
-  decode();
-  decode();
-  decode();
-  decode();
 
+  Serial1.println("AT+CPIN?");
+  decode();
+  decode();
+  decode();
+  decode();
+/*
   Serial.println("Partie 3 : Configuration du mode d'envoi en texte ");
   Serial1.println("AT+CMGF=1");
   decode();
@@ -329,8 +323,13 @@ void loop() {
   Serial.print("Humidité encodée (8 bits) : ");
   Serial.println(hum8bit, BIN);
 
-
+// ----- Envoi alerte -----
+  if (temperatureC > 25.0 || humidityRH > 50.0) {
+ //envoieNivUn();
+  }
   
+
+
   Serial.print("Pression encodée sur 8 bits : ");
   Serial.println(Spression);
   Serial.print("Vitesse encodée sur 8 bits : ");
@@ -487,15 +486,15 @@ Serial.println(Svitesse);
 
 Serial.println(STimestamp+STemperature_MSB+SHumidite_MSB+Spression+Svitesse);
 
-/*int error;
+int error;
 modem.beginPacket();
-modem.print(STimestamp);
+modem.print(STimestamp+STemperature_MSB+SHumidite_MSB+Spression+Svitesse);
 error = modem.endPacket(true);
 if(error < 0){
   Serial.println("La trame n'a pas été transmise");
 } else {
   Serial.println("La trame a été transmise");
-}*/
+}
 
 
 

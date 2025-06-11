@@ -151,8 +151,72 @@ void decode(){
   }
 
 
+// ======================== Envoi SMS ========================
 
 
+void envoieNivUn(){
+  Serial.println("Configuration du mode d'envoi en texte ");
+  Serial1.println("AT+CMGF=1");
+  decode();
+
+  Serial1.println("AT+CSCA?");
+  decode();
+  decode();
 
 
+  Serial.println("Envoi du niveau d'alerte ");
+  Serial1.println("AT+CMGS=\"+33601164104\""); //+33 765836249
+  delay(1000);
+  Serial1.print("1");
+  delay(1000);
+  Serial1.write(26);
+  decode();
+  decode();
+  decode();
+}
 
+void envoieNivDeux(){
+  Serial.println("Configuration du mode d'envoi en texte ");
+  Serial1.println("AT+CMGF=1");
+  decode();
+
+  Serial1.println("AT+CSCA?");
+  decode();
+  decode();
+
+
+  Serial.println("Envoi du niveau d'alerte ");
+  Serial1.println("AT+CMGS=\"+33601164104\""); //+33 765836249 601164104
+  decode();
+  decode();
+  delay(100);
+  Serial1.print("Alerte formation de grêle de niveau 2");
+  delay(100);
+  Serial1.write(26);
+  decode();
+  decode();
+  decode();
+}
+
+void envoieNivTrois(){
+  Serial.println("Configuration du mode d'envoi en texte ");
+  Serial1.println("AT+CMGF=1");
+  decode();
+
+  Serial1.println("AT+CSCA?");
+  decode();
+  decode();
+
+
+  Serial.println("Envoi du niveau d'alerte ");
+  Serial1.println("AT+CMGS=\"+33601164104\""); //+33 765836249
+  decode();
+  decode();
+
+  Serial1.println("Alerte formation de grêle de niveau 2");
+  delay(100);
+  Serial1.write(26);
+  decode();
+  decode();
+  decode();
+}
